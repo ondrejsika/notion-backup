@@ -25,6 +25,14 @@ func (api NotionApi) post(url string, body interface{}) (*resty.Response, error)
 	}).SetBody(body).Post(api.apiOrigin + url)
 }
 
+func (api NotionApi) postWithCookie(url string, body interface{}, cookie *http.Cookie) (*resty.Response, error) {
+	client := resty.New()
+	return client.R().SetCookie(&http.Cookie{
+		Name:  "token_v2",
+		Value: api.token,
+	}).SetBody(body).SetCookie(cookie).Post(api.apiOrigin + url)
+}
+
 func (api NotionApi) ExportSpace(spaceId, exportType string) (string, error) {
 	requestBody := map[string]interface{}{
 		"task": map[string]interface{}{
@@ -71,4 +79,46 @@ func (api NotionApi) GetTasksExportSpace(taskID string) (bool, int, string, erro
 		responseData.Results[0].Status.PagesExported,
 		responseData.Results[0].Status.ExportURL,
 		nil
+}
+
+type SendTemporaryPasswordResult struct {
+	CsrfState string
+}
+
+func (api NotionApi) SendTemporaryPassword(email string) (string, string, error) {
+	requestBody := map[string]interface{}{
+		"email":            email,
+		"disableLoginLink": false,
+		"native":           false,
+		"isSignup":         false,
+	}
+	response, _ := api.post("sendTemporaryPassword", requestBody)
+	var responseData SendTemporaryPasswordResult
+	var csrf string
+	json.Unmarshal(response.Body(), &responseData)
+	for _, cookie := range response.Cookies() {
+		if cookie.Name == "csrf" {
+			csrf = cookie.Value
+		}
+	}
+	return responseData.CsrfState, csrf, nil
+}
+
+func (api NotionApi) LoginWithEmail(state, csrf, password string) (string, error) {
+	requestBody := map[string]interface{}{
+		"state":    state,
+		"password": password,
+	}
+	cookie := http.Cookie{
+		Name:  "csrf",
+		Value: csrf,
+	}
+	response, _ := api.postWithCookie("loginWithEmail", requestBody, &cookie)
+	var token_v2 string
+	for _, cookie := range response.Cookies() {
+		if cookie.Name == "token_v2" {
+			token_v2 = cookie.Value
+		}
+	}
+	return token_v2, nil
 }
