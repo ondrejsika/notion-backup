@@ -122,3 +122,24 @@ func (api NotionApi) LoginWithEmail(state, csrf, password string) (string, error
 	}
 	return token_v2, nil
 }
+
+type GetSpacesResult struct {
+	RecordMap struct {
+		Space map[string]struct {
+			Value struct {
+				Name string
+			}
+		} `json:"space"`
+	} `json:"recordMap"`
+}
+
+func (api NotionApi) GetSpaces() (map[string]string, error) {
+	response, _ := api.post("loadUserContent", nil)
+	var responseData GetSpacesResult
+	json.Unmarshal(response.Body(), &responseData)
+	spaces := make(map[string]string, len(responseData.RecordMap.Space))
+	for key, val := range responseData.RecordMap.Space {
+		spaces[key] = val.Value.Name
+	}
+	return spaces, nil
+}
