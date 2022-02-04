@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "github.com/ondrejsika/notion-backup/cmd/backup"
+	_ "github.com/ondrejsika/notion-backup/cmd/list_spaces"
 	_ "github.com/ondrejsika/notion-backup/cmd/login"
 	"github.com/ondrejsika/notion-backup/cmd/root"
 	_ "github.com/ondrejsika/notion-backup/cmd/version"
